@@ -128,4 +128,16 @@ export class OrderService {
       errors,
     };
   }
+
+  static async deleteOrder(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      db.run("DELETE FROM orders WHERE id = ?", [id], function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes > 0);
+        }
+      });
+    });
+  }
 }

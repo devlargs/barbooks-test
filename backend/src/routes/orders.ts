@@ -96,4 +96,36 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
+router.delete("/:id", async (req: Request, res: Response) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+
+    if (isNaN(orderId) || orderId <= 0) {
+      return res.status(400).json({
+        error: "Invalid order ID",
+        message: "Order ID must be a positive number",
+      });
+    }
+
+    const deleted = await OrderService.deleteOrder(orderId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: "Order not found",
+        message: "No order found with the specified ID",
+      });
+    }
+
+    res.status(200).json({
+      message: "Order deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to delete order",
+    });
+  }
+});
+
 export default router;
