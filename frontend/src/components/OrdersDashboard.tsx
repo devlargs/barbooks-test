@@ -1,12 +1,7 @@
 import React, { useState } from "react";
-
-interface Order {
-  id: number;
-  product: string;
-  qty: number;
-  price: number;
-  total: number;
-}
+import { useSummary } from "../hooks/useSummary";
+import { useOrders } from "../hooks/useOrders";
+import { useCreateOrder } from "../hooks/useCreateOrder";
 
 const OrdersDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,34 +11,46 @@ const OrdersDashboard: React.FC = () => {
     price: "",
   });
 
-  // mock data
-  const orders: Order[] = [
-    { id: 1, product: "Balanar", qty: 12312, price: 213.0, total: 2622456.0 },
-    {
-      id: 2,
-      product: "Wireless Headphones",
-      qty: 2,
-      price: 99.99,
-      total: 199.98,
-    },
-    { id: 3, product: "Smartphone Case", qty: 1, price: 24.99, total: 24.99 },
-    { id: 4, product: "USB Cable", qty: 3, price: 12.99, total: 38.97 },
-    {
-      id: 5,
-      product: "Wireless Headphones",
-      qty: 1,
-      price: 99.99,
-      total: 99.99,
-    },
-  ];
+  // Custom hooks
+  const {
+    data: summary,
+    loading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary,
+  } = useSummary();
+  const {
+    data: orders,
+    loading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useOrders();
+  const {
+    createOrder,
+    loading: createLoading,
+    error: createError,
+  } = useCreateOrder();
 
   const filteredOrders = orders.filter((order) =>
     order.product.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddOrder = () => {
-    console.log("Adding new order:", newOrder);
-    setNewOrder({ product: "", qty: "", price: "" });
+  const handleAddOrder = async () => {
+    if (!newOrder.product || !newOrder.qty || !newOrder.price) {
+      return;
+    }
+
+    const orderData = {
+      product: newOrder.product,
+      qty: parseInt(newOrder.qty),
+      price: parseFloat(newOrder.price),
+    };
+
+    const result = await createOrder(orderData);
+    if (result) {
+      setNewOrder({ product: "", qty: "", price: "" });
+      refetchSummary();
+      refetchOrders();
+    }
   };
 
   return (
@@ -60,9 +67,15 @@ const OrdersDashboard: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Total Revenue
                 </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  $2,623,671.77
-                </p>
+                {summaryLoading ? (
+                  <p className="text-3xl font-bold text-gray-900">Loading...</p>
+                ) : summaryError ? (
+                  <p className="text-3xl font-bold text-red-600">Error</p>
+                ) : (
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${summary?.totalRevenue.toLocaleString() || "0"}
+                  </p>
+                )}
                 <p className="text-sm text-gray-500">From all orders</p>
               </div>
               <div className="text-2xl text-gray-400">$</div>
@@ -75,7 +88,15 @@ const OrdersDashboard: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Median Order Price
                 </p>
-                <p className="text-3xl font-bold text-gray-900">$89.99</p>
+                {summaryLoading ? (
+                  <p className="text-3xl font-bold text-gray-900">Loading...</p>
+                ) : summaryError ? (
+                  <p className="text-3xl font-bold text-red-600">Error</p>
+                ) : (
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${summary?.medianOrderPrice.toFixed(2) || "0.00"}
+                  </p>
+                )}
                 <p className="text-sm text-gray-500">Middle order value</p>
               </div>
               <div className="text-2xl text-gray-400">📈</div>
@@ -88,7 +109,15 @@ const OrdersDashboard: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">
                   Top Product by Quantity
                 </p>
-                <p className="text-3xl font-bold text-gray-900">Balanar</p>
+                {summaryLoading ? (
+                  <p className="text-3xl font-bold text-gray-900">Loading...</p>
+                ) : summaryError ? (
+                  <p className="text-3xl font-bold text-red-600">Error</p>
+                ) : (
+                  <p className="text-3xl font-bold text-gray-900">
+                    {summary?.topProductByQty || "No products"}
+                  </p>
+                )}
                 <p className="text-sm text-gray-500">Most ordered item</p>
               </div>
               <div className="text-2xl text-gray-400">📦</div>
@@ -101,7 +130,15 @@ const OrdersDashboard: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900">Orders</h2>
-                <p className="text-sm text-gray-500">13 total orders</p>
+                {ordersLoading ? (
+                  <p className="text-sm text-gray-500">Loading orders...</p>
+                ) : ordersError ? (
+                  <p className="text-sm text-red-500">Error loading orders</p>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    {orders.length} total orders
+                  </p>
+                )}
               </div>
 
               <div className="p-6 border-b border-gray-200">
@@ -150,22 +187,51 @@ const OrdersDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {order.product}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {order.qty.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${order.price.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${order.total.toFixed(2)}
+                    {ordersLoading ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-6 py-4 text-center text-sm text-gray-500"
+                        >
+                          Loading orders...
                         </td>
                       </tr>
-                    ))}
+                    ) : ordersError ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-6 py-4 text-center text-sm text-red-500"
+                        >
+                          Error loading orders
+                        </td>
+                      </tr>
+                    ) : filteredOrders.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-6 py-4 text-center text-sm text-gray-500"
+                        >
+                          No orders found
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredOrders.map((order) => (
+                        <tr key={order.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {order.product}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {order.qty.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${order.price.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${(order.qty * order.price).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -251,11 +317,16 @@ const OrdersDashboard: React.FC = () => {
                   />
                 </div>
 
+                {createError && (
+                  <div className="text-red-500 text-sm mb-4">{createError}</div>
+                )}
+
                 <button
                   onClick={handleAddOrder}
-                  className="w-full bg-gray-900 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                  disabled={createLoading}
+                  className="w-full bg-gray-900 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Add Order
+                  {createLoading ? "Adding..." : "Add Order"}
                 </button>
               </div>
             </div>
