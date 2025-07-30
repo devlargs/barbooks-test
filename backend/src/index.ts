@@ -1,8 +1,7 @@
 import server from "./server";
+import { config } from "./config/env";
 
-const PORT = process.env.PORT || 3000;
-
-// Start the server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(config.PORT, () => {
+  console.log(`Server running on port ${config.PORT}`);
+  console.log(`Database path: ${config.DB_PATH}`);
 });
