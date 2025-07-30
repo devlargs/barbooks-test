@@ -18,7 +18,6 @@ app.get("/", (_: Request, res: Response) => {
   });
 });
 
-// API routes
 app.use("/api/orders", ordersRouter);
 
 initializeDatabase().catch(console.error);

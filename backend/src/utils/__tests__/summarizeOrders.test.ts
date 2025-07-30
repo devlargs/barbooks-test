@@ -15,10 +15,10 @@ describe("summarizeOrders", () => {
 
     expect(result.totalRevenue).toBe(
       2 * 1000 + 5 * 25 + 3 * 50 + 1 * 1000 + 2 * 300
-    ); // 3625
-    expect(result.medianOrderPrice).toBe(600); // [50, 125, 300, 600, 2000] -> median is 600
-    expect(result.topProductByQty).toBe("Mouse"); // Laptop: 3 total qty, Mouse: 5 total qty
-    expect(result.uniqueProductCount).toBe(4); // Laptop, Mouse, Keyboard, Monitor
+    );
+    expect(result.medianOrderPrice).toBe(600);
+    expect(result.topProductByQty).toBe("Mouse");
+    expect(result.uniqueProductCount).toBe(4);
   });
 
   test("should handle edge case with empty array", () => {
@@ -41,10 +41,10 @@ describe("summarizeOrders", () => {
 
     const result = summarizeOrders(orders);
 
-    expect(result.totalRevenue).toBe(6 * 10); // 60
-    expect(result.medianOrderPrice).toBe(20); // [10, 20, 30] -> median is 20
-    expect(result.topProductByQty).toBe("Book"); // Only one product
-    expect(result.uniqueProductCount).toBe(1); // Only one unique product
+    expect(result.totalRevenue).toBe(6 * 10);
+    expect(result.medianOrderPrice).toBe(20);
+    expect(result.topProductByQty).toBe("Book");
+    expect(result.uniqueProductCount).toBe(1);
   });
 
   test("should handle edge case with single order", () => {
@@ -70,6 +70,6 @@ describe("summarizeOrders", () => {
 
     const result = summarizeOrders(orders);
 
-    expect(result.medianOrderPrice).toBe(25); // [10, 20, 30, 40] -> median is (20+30)/2 = 25
+    expect(result.medianOrderPrice).toBe(25);
   });
 });

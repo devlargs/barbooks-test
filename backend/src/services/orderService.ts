@@ -4,7 +4,7 @@ import { Order } from "../types";
 export class OrderService {
   static async getAllOrders(): Promise<Order[]> {
     return new Promise((resolve, reject) => {
-      db.all("SELECT * FROM orders ORDER BY id", (err, rows) => {
+      db.all("SELECT * FROM orders ORDER BY id DESC", (err, rows) => {
         if (err) {
           reject(err);
         } else {
@@ -28,7 +28,7 @@ export class OrderService {
         params.push(`%${product}%`);
       }
 
-      sql += " ORDER BY id";
+      sql += " ORDER BY id DESC";
 
       if (limit) {
         sql += " LIMIT ?";

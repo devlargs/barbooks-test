@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSummary } from "../hooks/useSummary";
 import { useOrders } from "../hooks/useOrders";
 import { useCreateOrder } from "../hooks/useCreateOrder";
@@ -11,10 +11,14 @@ const OrdersDashboard: React.FC = () => {
     qty: "",
     price: "",
   });
+  const [formErrors, setFormErrors] = useState({
+    product: "",
+    qty: "",
+    price: "",
+  });
 
   const ITEMS_PER_PAGE = 5;
 
-  // Custom hooks
   const {
     data: summary,
     loading: summaryLoading,
@@ -40,13 +44,61 @@ const OrdersDashboard: React.FC = () => {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const validateForm = () => {
+    const errors = {
+      product: "",
+      qty: "",
+      price: "",
+    };
+    let isValid = true;
+
+    if (!newOrder.product.trim()) {
+      errors.product = "Product name is required";
+      isValid = false;
+    } else if (newOrder.product.trim().length < 2) {
+      errors.product = "Product name must be at least 2 characters";
+      isValid = false;
+    }
+
+    if (!newOrder.qty) {
+      errors.qty = "Quantity is required";
+      isValid = false;
+    } else {
+      const qty = parseInt(newOrder.qty);
+      if (isNaN(qty) || qty <= 0) {
+        errors.qty = "Quantity must be a positive number";
+        isValid = false;
+      }
+    }
+
+    if (!newOrder.price) {
+      errors.price = "Price is required";
+      isValid = false;
+    } else {
+      const price = parseFloat(newOrder.price);
+      if (isNaN(price) || price <= 0) {
+        errors.price = "Price must be a positive number";
+        isValid = false;
+      }
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   const handleAddOrder = async () => {
-    if (!newOrder.product || !newOrder.qty || !newOrder.price) {
+    if (!validateForm()) {
       return;
     }
 
     const orderData = {
-      product: newOrder.product,
+      product: newOrder.product.trim(),
       qty: parseInt(newOrder.qty),
       price: parseFloat(newOrder.price),
     };
@@ -54,6 +106,8 @@ const OrdersDashboard: React.FC = () => {
     const result = await createOrder(orderData);
     if (result) {
       setNewOrder({ product: "", qty: "", price: "" });
+      setFormErrors({ product: "", qty: "", price: "" });
+      setCurrentPage(1);
       refetchSummary();
       refetchOrders();
     }
@@ -65,7 +119,7 @@ const OrdersDashboard: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const renderPaginationButtons = () => {
@@ -78,7 +132,6 @@ const OrdersDashboard: React.FC = () => {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // Previous button
     buttons.push(
       <button
         key="prev"
@@ -90,7 +143,6 @@ const OrdersDashboard: React.FC = () => {
       </button>
     );
 
-    // Page numbers
     for (let i = startPage; i <= endPage; i++) {
       buttons.push(
         <button
@@ -107,7 +159,6 @@ const OrdersDashboard: React.FC = () => {
       );
     }
 
-    // Next button
     buttons.push(
       <button
         key="next"
@@ -336,11 +387,21 @@ const OrdersDashboard: React.FC = () => {
                     type="text"
                     placeholder="Enter product name"
                     value={newOrder.product}
-                    onChange={(e) =>
-                      setNewOrder({ ...newOrder, product: e.target.value })
-                    }
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
+                    onChange={(e) => {
+                      setNewOrder({ ...newOrder, product: e.target.value });
+                      if (formErrors.product) {
+                        setFormErrors({ ...formErrors, product: "" });
+                      }
+                    }}
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.product ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {formErrors.product && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.product}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -351,11 +412,21 @@ const OrdersDashboard: React.FC = () => {
                     type="number"
                     placeholder="Enter quantity"
                     value={newOrder.qty}
-                    onChange={(e) =>
-                      setNewOrder({ ...newOrder, qty: e.target.value })
-                    }
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
+                    onChange={(e) => {
+                      setNewOrder({ ...newOrder, qty: e.target.value });
+                      if (formErrors.qty) {
+                        setFormErrors({ ...formErrors, qty: "" });
+                      }
+                    }}
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.qty ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {formErrors.qty && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.qty}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -367,11 +438,21 @@ const OrdersDashboard: React.FC = () => {
                     step="0.01"
                     placeholder="Enter price"
                     value={newOrder.price}
-                    onChange={(e) =>
-                      setNewOrder({ ...newOrder, price: e.target.value })
-                    }
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
+                    onChange={(e) => {
+                      setNewOrder({ ...newOrder, price: e.target.value });
+                      if (formErrors.price) {
+                        setFormErrors({ ...formErrors, price: "" });
+                      }
+                    }}
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.price ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {formErrors.price && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.price}
+                    </p>
+                  )}
                 </div>
 
                 {createError && (
