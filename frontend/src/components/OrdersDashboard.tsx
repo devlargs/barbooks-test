@@ -5,11 +5,14 @@ import { useCreateOrder } from "../hooks/useCreateOrder";
 
 const OrdersDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [newOrder, setNewOrder] = useState({
     product: "",
     qty: "",
     price: "",
   });
+
+  const ITEMS_PER_PAGE = 5;
 
   // Custom hooks
   const {
@@ -23,16 +26,19 @@ const OrdersDashboard: React.FC = () => {
     loading: ordersLoading,
     error: ordersError,
     refetch: refetchOrders,
-  } = useOrders();
+    totalCount,
+  } = useOrders({
+    limit: ITEMS_PER_PAGE,
+    offset: (currentPage - 1) * ITEMS_PER_PAGE,
+    product: searchTerm || undefined,
+  });
   const {
     createOrder,
     loading: createLoading,
     error: createError,
   } = useCreateOrder();
 
-  const filteredOrders = orders.filter((order) =>
-    order.product.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   const handleAddOrder = async () => {
     if (!newOrder.product || !newOrder.qty || !newOrder.price) {
@@ -51,6 +57,69 @@ const OrdersDashboard: React.FC = () => {
       refetchSummary();
       refetchOrders();
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Previous button
+    buttons.push(
+      <button
+        key="prev"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+      >
+        Previous
+      </button>
+    );
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`px-3 py-1 text-sm rounded ${
+            currentPage === i
+              ? "bg-gray-900 text-white"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Next button
+    buttons.push(
+      <button
+        key="next"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+      >
+        Next
+      </button>
+    );
+
+    return buttons;
   };
 
   return (
@@ -136,7 +205,7 @@ const OrdersDashboard: React.FC = () => {
                   <p className="text-sm text-red-500">Error loading orders</p>
                 ) : (
                   <p className="text-sm text-gray-500">
-                    {orders.length} total orders
+                    {totalCount} total orders
                   </p>
                 )}
               </div>
@@ -162,7 +231,7 @@ const OrdersDashboard: React.FC = () => {
                     type="text"
                     placeholder="Search by product name..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
                   />
                 </div>
@@ -205,7 +274,7 @@ const OrdersDashboard: React.FC = () => {
                           Error loading orders
                         </td>
                       </tr>
-                    ) : filteredOrders.length === 0 ? (
+                    ) : orders.length === 0 ? (
                       <tr>
                         <td
                           colSpan={4}
@@ -215,7 +284,7 @@ const OrdersDashboard: React.FC = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order) => (
+                      orders.map((order) => (
                         <tr key={order.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {order.product}
@@ -237,23 +306,11 @@ const OrdersDashboard: React.FC = () => {
               </div>
 
               <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-700">Page 1 of 3</div>
+                <div className="text-sm text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </div>
                 <div className="flex items-center space-x-2">
-                  <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">
-                    Previous
-                  </button>
-                  <button className="px-3 py-1 text-sm bg-gray-900 text-white rounded">
-                    1
-                  </button>
-                  <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">
-                    2
-                  </button>
-                  <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">
-                    3
-                  </button>
-                  <button className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">
-                    Next
-                  </button>
+                  {renderPaginationButtons()}
                 </div>
               </div>
             </div>

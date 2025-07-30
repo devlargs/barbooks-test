@@ -50,6 +50,26 @@ export class OrderService {
     });
   }
 
+  static async getOrdersCount(product?: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      let sql = "SELECT COUNT(*) as count FROM orders WHERE 1=1";
+      const params: any[] = [];
+
+      if (product) {
+        sql += " AND product LIKE ?";
+        params.push(`%${product}%`);
+      }
+
+      db.get(sql, params, (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve((row as any).count);
+        }
+      });
+    });
+  }
+
   static async createOrder(orderData: Omit<Order, "id">): Promise<Order> {
     return new Promise((resolve, reject) => {
       const { product, qty, price } = orderData;

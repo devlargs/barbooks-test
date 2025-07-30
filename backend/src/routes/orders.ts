@@ -43,13 +43,21 @@ router.get("/", async (req: Request, res: Response) => {
       });
     }
 
-    const orders = await OrderService.getOrdersWithFilters(
-      product as string,
-      parsedLimit,
-      parsedOffset
-    );
+    const [orders, totalCount] = await Promise.all([
+      OrderService.getOrdersWithFilters(
+        product as string,
+        parsedLimit,
+        parsedOffset
+      ),
+      OrderService.getOrdersCount(product as string),
+    ]);
 
-    res.json(orders);
+    res.json({
+      orders,
+      totalCount,
+      limit: parsedLimit,
+      offset: parsedOffset,
+    });
   } catch (error) {
     console.error("Error getting orders:", error);
     res.status(500).json({
